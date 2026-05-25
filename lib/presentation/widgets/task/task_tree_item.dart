@@ -50,7 +50,9 @@ class _TaskTreeItemState extends ConsumerState<TaskTreeItem> {
   List<Task>? _orderedSubtasks;
 
   static const double _indentWidth = 24.0;
-  static const double _chevronWidth = 28.0;
+  // Must be <= TaskListItem's start padding (16dp) so the chevron sits
+  // within the existing padding area and doesn't shift the checkbox.
+  static const double _chevronWidth = 16.0;
 
   List<Task> get _subtasks {
     final map = widget.subtaskMap;
@@ -192,51 +194,70 @@ class _TaskTreeItemState extends ConsumerState<TaskTreeItem> {
   Widget _buildRow(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Indentation area: each depth level is 24 dp wide.
-          // For depth > 0 the rightmost 2 dp of the indent acts as a vertical
-          // connector line to signal the parent–child relationship.
-          if (widget.depth > 0)
-            SizedBox(
-              width: widget.depth * _indentWidth,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  width: 2.0,
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+    final taskItem = TaskListItem(
+      key: Key('task_item_${widget.task.id}'),
+      task: widget.task,
+      onTap: () => _showTaskBottomSheet(context),
+      onEdit: () => _onEdit(context),
+      onCheckedChanged: (_) => _markAsDone(context),
+    );
+
+    // Fast path: no indent, no chevron — return directly, identical to
+    // the original flat list behaviour.
+    if (widget.depth == 0 && !_hasSubtasks) {
+      return taskItem;
+    }
+
+    // The chevron is Positioned over the TaskListItem's existing left
+    // padding so the checkbox doesn't shift right for parent tasks.
+    Widget content = _hasSubtasks
+        ? Stack(
+            children: [
+              taskItem,
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: _chevronWidth,
+                child: InkWell(
+                  onTap: () => setState(() => _isExpanded = !_isExpanded),
+                  child: Center(
+                    child: Icon(
+                      _isExpanded ? Icons.expand_more : Icons.chevron_right,
+                      size: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
-            ),
-          // Chevron toggle (only for tasks that have subtasks).
-          if (_hasSubtasks)
-            SizedBox(
-              width: _chevronWidth,
-              child: InkWell(
-                onTap: () => setState(() => _isExpanded = !_isExpanded),
-                child: Icon(
-                  _isExpanded ? Icons.expand_more : Icons.chevron_right,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          // Task item takes the remaining width.
-          Expanded(
-            child: TaskListItem(
-              key: Key('task_item_${widget.task.id}'),
-              task: widget.task,
-              onTap: () => _showTaskBottomSheet(context),
-              onEdit: () => _onEdit(context),
-              onCheckedChanged: (_) => _markAsDone(context),
-            ),
+            ],
+          )
+        : taskItem;
+
+    if (widget.depth == 0) {
+      return content;
+    }
+
+    // For depth > 0, add indent and overlay the vertical connector line.
+    return Stack(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(width: widget.depth * _indentWidth),
+            Expanded(child: content),
+          ],
+        ),
+        Positioned(
+          left: widget.depth * _indentWidth - 2,
+          top: 0,
+          bottom: 0,
+          width: 2,
+          child: Container(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
