@@ -20,6 +20,7 @@ class TaskDto extends Dto<Task> {
   final double? position;
   final double? percentDone;
   final UserDto? createdBy;
+  final List<UserDto> assignees;
   Duration? repeatAfter;
   final List<TaskDto> subtasks;
   final List<LabelDto> labels;
@@ -41,6 +42,7 @@ class TaskDto extends Dto<Task> {
     this.color,
     this.position,
     this.percentDone,
+    this.assignees = const [],
     this.subtasks = const [],
     this.labels = const [],
     this.attachments = const [],
@@ -98,6 +100,11 @@ class TaskDto extends Dto<Task> {
                     .map((subtask) => TaskDto.fromJson(subtask))
                     .toList()
               : []),
+      assignees = json['assignees'] != null
+          ? (json['assignees'] as List<dynamic>)
+                .map((u) => UserDto.fromJson(u))
+                .toList()
+          : [],
       attachments = json['attachments'] != null
           ? (json['attachments'] as List<dynamic>)
                 .map((attachment) => TaskAttachmentDto.fromJSON(attachment))
@@ -160,6 +167,7 @@ class TaskDto extends Dto<Task> {
     position: position,
     percentDone: percentDone,
     labels: labels.map((e) => e.toDomain()).toList(),
+    assignees: assignees.map((e) => e.toDomain()).toList(),
     subtasks: subtasks.map((e) => e.toDomain()).toList(),
     attachments: attachments.map((e) => e.toDomain()).toList(),
     updated: updated,
@@ -188,6 +196,7 @@ class TaskDto extends Dto<Task> {
     position: b.position,
     percentDone: b.percentDone,
     labels: b.labels.map((e) => LabelDto.fromDomain(e)).toList(),
+    assignees: b.assignees.map((e) => UserDto.fromDomain(e)).toList(),
     subtasks: b.subtasks.map((e) => TaskDto.fromDomain(e)).toList(),
     attachments: b.attachments
         .map((e) => TaskAttachmentDto.fromDomain(e))

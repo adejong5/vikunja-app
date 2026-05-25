@@ -20,6 +20,7 @@ class Task {
   double? position;
   double? percentDone;
   User? createdBy;
+  List<User> assignees;
   Duration? repeatAfter;
   List<Task> subtasks;
   List<Label> labels;
@@ -41,6 +42,7 @@ class Task {
     this.color,
     this.position,
     this.percentDone,
+    this.assignees = const [],
     this.subtasks = const [],
     this.labels = const [],
     this.attachments = const [],
@@ -88,6 +90,7 @@ class Task {
     double? position,
     double? percentDone,
     User? createdBy,
+    List<User>? assignees,
     Duration? repeatAfter,
     List<Task>? subtasks,
     List<Label>? labels,
@@ -113,6 +116,7 @@ class Task {
       position: position ?? this.position,
       percentDone: percentDone ?? this.percentDone,
       createdBy: createdBy ?? this.createdBy,
+      assignees: assignees ?? this.assignees,
       repeatAfter: repeatAfter ?? this.repeatAfter,
       subtasks: subtasks ?? this.subtasks,
       labels: labels ?? this.labels,

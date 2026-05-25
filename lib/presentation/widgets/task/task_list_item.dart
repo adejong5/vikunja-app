@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vikunja_app/core/di/network_provider.dart';
 import 'package:vikunja_app/domain/entities/task.dart';
 import 'package:vikunja_app/presentation/widgets/due_date_card.dart';
 import 'package:vikunja_app/presentation/widgets/project/kanban/priority_batch.dart';
 import 'package:vikunja_app/presentation/widgets/task/task_actions.dart';
 
-class TaskListItem extends StatefulWidget {
+class TaskListItem extends ConsumerStatefulWidget {
   final Task task;
   final Function onTap;
   final Function onEdit;
@@ -22,15 +24,21 @@ class TaskListItem extends StatefulWidget {
   TaskListItemState createState() => TaskListItemState();
 }
 
-class TaskListItemState extends State<TaskListItem> {
+class TaskListItemState extends ConsumerState<TaskListItem> {
   TaskListItemState();
+
+  Map<String, String>? _authHeaders;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(clientProviderProvider).getHeaders().then((h) {
+      if (mounted) setState(() => _authHeaders = h);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    var isThreeLine =
-        widget.task.hasDueDate ||
-        widget.task.priority != null && widget.task.priority != 0;
-
     return Stack(
       fit: StackFit.loose,
       children: [
@@ -42,10 +50,30 @@ class TaskListItemState extends State<TaskListItem> {
             start: 16.0,
             end: 8.0,
           ),
-          title: Text(
-            widget.task.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (widget.task.assignees.isNotEmpty && _authHeaders != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: CircleAvatar(
+                    radius: 10,
+                    backgroundImage: NetworkImage(
+                      widget.task.assignees.first.avatarUrl(
+                        ref.read(clientProviderProvider).apiBase,
+                      ),
+                      headers: _authHeaders,
+                    ),
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+            ],
           ),
           subtitle: _buildTaskSubtitle(widget.task, context),
           leading: Checkbox(
