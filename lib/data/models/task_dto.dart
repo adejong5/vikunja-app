@@ -6,6 +6,13 @@ import 'package:vikunja_app/data/models/task_reminder_dto.dart';
 import 'package:vikunja_app/data/models/user_dto.dart';
 import 'package:vikunja_app/domain/entities/task.dart';
 
+// Go serializes zero-value time.Time as "0001-01-01T00:00:00Z". Treat it as absent.
+DateTime? _parseDate(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  final dt = DateTime.parse(raw);
+  return dt.year <= 1 ? null : dt;
+}
+
 class TaskDto extends Dto<Task> {
   final int id;
   final int? parentTaskId, priority, bucketId;
@@ -65,9 +72,9 @@ class TaskDto extends Dto<Task> {
                 .map((ts) => TaskReminderDto.fromJson(ts))
                 .toList()
           : [],
-      dueDate = DateTime.parse(json['due_date']),
-      startDate = DateTime.parse(json['start_date']),
-      endDate = DateTime.parse(json['end_date']),
+      dueDate = _parseDate(json['due_date']),
+      startDate = _parseDate(json['start_date']),
+      endDate = _parseDate(json['end_date']),
       parentTaskId = json['parent_task_id'] ??
           (json['related_tasks'] != null &&
                   json['related_tasks']['parenttask'] != null &&
