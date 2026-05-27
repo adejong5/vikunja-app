@@ -13,6 +13,7 @@ import 'package:vikunja_app/presentation/manager/project_controller.dart';
 import 'package:vikunja_app/presentation/pages/error_widget.dart';
 import 'package:vikunja_app/presentation/pages/loading_widget.dart';
 import 'package:vikunja_app/presentation/pages/project/project_edit.dart';
+import 'package:vikunja_app/presentation/widgets/project/calendar/project_calendar_view.dart';
 import 'package:vikunja_app/presentation/widgets/project/kanban/kanban_widget.dart';
 import 'package:vikunja_app/presentation/widgets/project/project_task_list.dart';
 import 'package:vikunja_app/presentation/widgets/task/add_task_dialog.dart';
@@ -96,6 +97,8 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
         return ProjectTaskList(project);
       case ViewKind.kanban:
         return KanbanWidget(project: project);
+      case ViewKind.calendar:
+        return ProjectCalendarView(project: project);
       default:
         return Text(AppLocalizations.of(context).notImplemented);
     }
@@ -128,6 +131,7 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
   Builder? _buildFab(Project project) {
     if (project.views.isEmpty ||
         project.views[_viewIndex].viewKind == ViewKind.kanban ||
+        project.views[_viewIndex].viewKind == ViewKind.calendar ||
         project.id < 0) {
       return null;
     }
@@ -141,18 +145,17 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
   }
 
   BottomNavigationBar? _buildBottomNavigation(Project project) {
-    if (project.views.length >= 2) {
+    if (project.views.isNotEmpty) {
+      final items = project.views.map(
+        (view) => BottomNavigationBarItem(
+          icon: view.icon,
+          label: view.title,
+          tooltip: view.title,
+        ),
+      ).toList();
       return BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        items: project.views
-            .map(
-              (view) => BottomNavigationBarItem(
-                icon: view.icon,
-                label: view.title,
-                tooltip: view.title,
-              ),
-            )
-            .toList(),
+        items: items,
         currentIndex: _viewIndex,
         onTap: _onViewTapped,
       );
@@ -208,10 +211,9 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
   void _onViewTapped(int index) {
     setState(() {
       _viewIndex = index;
-
       ref
           .read(projectControllerProvider(widget.project).notifier)
-          .loadForView(widget.project, _viewIndex);
+          .loadForView(widget.project, index);
     });
   }
 
