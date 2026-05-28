@@ -16,6 +16,7 @@ import 'package:vikunja_app/main.dart';
 import 'package:vikunja_app/presentation/manager/notifications.dart';
 import 'package:vikunja_app/presentation/manager/settings_controller.dart';
 import 'package:vikunja_app/presentation/manager/task_page_controller.dart';
+import 'package:vikunja_app/presentation/pages/all_projects_calendar_page.dart';
 import 'package:vikunja_app/presentation/pages/project/project_list_page.dart';
 import 'package:vikunja_app/presentation/pages/settings_page.dart';
 import 'package:vikunja_app/presentation/pages/task/task_list_page.dart';
@@ -35,7 +36,7 @@ class HomePageState extends ConsumerState<HomePage> {
   Widget? drawerItem;
   NotificationHandler? _notificationHandler;
 
-  List<Widget> widgets = [TaskListPage(), ProjectListPage(), SettingsPage()];
+  List<Widget> widgets = [TaskListPage(), ProjectListPage(), AllProjectsCalendarPage(), SettingsPage()];
 
   List<NavigationDestination> navbarItems(BuildContext context) => [
     NavigationDestination(
@@ -45,6 +46,10 @@ class HomePageState extends ConsumerState<HomePage> {
     NavigationDestination(
       icon: Icon(Icons.list),
       label: AppLocalizations.of(context).projectsTab,
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.calendar_month),
+      label: AppLocalizations.of(context).calendarTab,
     ),
     NavigationDestination(
       icon: Icon(Icons.settings),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:vikunja_app/core/di/network_provider.dart';
+import 'package:vikunja_app/data/data_sources/google_calendar_data_source.dart';
+import 'package:vikunja_app/domain/entities/google_calendar_event.dart';
 import 'package:vikunja_app/domain/entities/project.dart';
 import 'package:vikunja_app/domain/entities/task.dart';
 import 'package:vikunja_app/l10n/gen/app_localizations.dart';
@@ -14,8 +16,9 @@ import 'package:vikunja_app/presentation/widgets/task_bottom_sheet.dart';
 
 class ProjectCalendarView extends ConsumerStatefulWidget {
   final Project project;
+  final int? viewId;
 
-  const ProjectCalendarView({super.key, required this.project});
+  const ProjectCalendarView({super.key, required this.project, this.viewId});
 
   @override
   ConsumerState<ProjectCalendarView> createState() =>
@@ -26,7 +29,64 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
+  Map<DateTime, List<GoogleCalendarEvent>> _googleEventMap = {};
+  String? _lastFetchedMonth;
+
   DateTime _normalise(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+
+  String _currentMonth() =>
+      '${_focusedDay.year}-${_focusedDay.month.toString().padLeft(2, '0')}';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchGoogleEvents();
+    });
+  }
+
+  Future<void> _fetchGoogleEvents() async {
+    final viewId = widget.viewId;
+    if (viewId == null) return;
+
+    final month = _currentMonth();
+    if (month == _lastFetchedMonth) return;
+
+    final ds = GoogleCalendarDataSource(ref.read(clientProviderProvider));
+    try {
+      final response = await ds.getProjectEvents(
+        widget.project.id,
+        viewId,
+        month,
+      );
+      if (!mounted) return;
+      if (response.isSuccessful) {
+        final events = response.toSuccess().body;
+        final map = <DateTime, List<GoogleCalendarEvent>>{};
+        for (final event in events) {
+          if (event.allDay) {
+            final endDate = event.end != null
+                ? _normalise(event.end!)
+                : _normalise(event.start);
+            var current = _normalise(event.start);
+            while (!current.isAfter(endDate)) {
+              (map[current] ??= []).add(event);
+              current = current.add(const Duration(days: 1));
+            }
+          } else {
+            final key = _normalise(event.start);
+            (map[key] ??= []).add(event);
+          }
+        }
+        setState(() {
+          _googleEventMap = map;
+          _lastFetchedMonth = month;
+        });
+      }
+    } catch (_) {
+      // Silently ignore — Google Calendar may not be enabled or linked
+    }
+  }
 
   Map<DateTime, List<Task>> _buildEventMap(List<Task> tasks) {
     final map = <DateTime, List<Task>>{};
@@ -43,8 +103,16 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
     return map[_normalise(day)] ?? [];
   }
 
+  List<GoogleCalendarEvent> _googleEventsForDay(DateTime day) {
+    return _googleEventMap[_normalise(day)] ?? [];
+  }
+
   String _formatDate(BuildContext context, DateTime date) {
     return MaterialLocalizations.of(context).formatMediumDate(date);
+  }
+
+  String _formatEventTime(GoogleCalendarEvent event) {
+    return event.start.toLocal().toString().substring(11, 16);
   }
 
   Future<void> _addTask(
@@ -94,20 +162,26 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
         final selectedTasks = _selectedDay != null
             ? _eventsForDay(eventMap, _selectedDay!)
             : <Task>[];
+        final selectedGoogleEvents = _selectedDay != null
+            ? _googleEventsForDay(_selectedDay!)
+            : <GoogleCalendarEvent>[];
         final noDueDateTasks =
             pageModel.tasks.where((t) => t.dueDate == null).toList();
 
         return CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: TableCalendar<Task>(
+              child: TableCalendar<Object>(
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: CalendarFormat.month,
                 availableCalendarFormats: const {CalendarFormat.month: ''},
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                eventLoader: (day) => _eventsForDay(eventMap, day),
+                eventLoader: (day) => [
+                  ..._eventsForDay(eventMap, day),
+                  ..._googleEventsForDay(day),
+                ],
                 onDaySelected: (selectedDay, focusedDay) {
                   setState(() {
                     _selectedDay = selectedDay;
@@ -116,6 +190,7 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
                 },
                 onPageChanged: (focusedDay) {
                   _focusedDay = focusedDay;
+                  _fetchGoogleEvents();
                 },
                 calendarStyle: CalendarStyle(
                   markerDecoration: BoxDecoration(
@@ -145,7 +220,7 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
                   ],
                 ),
               ),
-              if (selectedTasks.isEmpty)
+              if (selectedTasks.isEmpty && selectedGoogleEvents.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -158,23 +233,46 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
                     ),
                   ),
                 )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final task = selectedTasks[index];
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _TaskTile(task: task, project: widget.project),
-                          if (index < selectedTasks.length - 1)
-                            const Divider(height: 1),
-                        ],
-                      );
-                    },
-                    childCount: selectedTasks.length,
+              else ...[
+                if (selectedTasks.isNotEmpty)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final task = selectedTasks[index];
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TaskTile(task: task, project: widget.project),
+                            if (index < selectedTasks.length - 1 ||
+                                selectedGoogleEvents.isNotEmpty)
+                              const Divider(height: 1),
+                          ],
+                        );
+                      },
+                      childCount: selectedTasks.length,
+                    ),
                   ),
-                ),
+                if (selectedGoogleEvents.isNotEmpty)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final event = selectedGoogleEvents[index];
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _GoogleEventTile(
+                              event: event,
+                              formatTime: _formatEventTime,
+                            ),
+                            if (index < selectedGoogleEvents.length - 1)
+                              const Divider(height: 1),
+                          ],
+                        );
+                      },
+                      childCount: selectedGoogleEvents.length,
+                    ),
+                  ),
+              ],
               const SliverToBoxAdapter(child: Divider(height: 8, thickness: 4)),
             ],
 
@@ -273,6 +371,49 @@ class _TaskTile extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _GoogleEventTile extends StatelessWidget {
+  final GoogleCalendarEvent event;
+  final String Function(GoogleCalendarEvent) formatTime;
+
+  const _GoogleEventTile({required this.event, required this.formatTime});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(
+          color: Color(0xFF4285F4),
+          shape: BoxShape.circle,
+        ),
+        child: const Center(
+          child: Text(
+            'G',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              height: 1,
+            ),
+          ),
+        ),
+      ),
+      title: Text(
+        event.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: event.allDay
+          ? null
+          : Text(
+              formatTime(event),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
     );
   }
 }

@@ -98,7 +98,10 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
       case ViewKind.kanban:
         return KanbanWidget(project: project);
       case ViewKind.calendar:
-        return ProjectCalendarView(project: project);
+        return ProjectCalendarView(
+          project: project,
+          viewId: project.views[_viewIndex].id,
+        );
       default:
         return Text(AppLocalizations.of(context).notImplemented);
     }
