@@ -24,10 +24,3 @@ jobs:
     uses: ./.github/workflows/test.yml
     secrets: inherit
 
-  release:
-    name: Release
-    if: ${{ github.ref_type == 'tag' || github.ref_name == 'main' || (github.event_name == 'release' && github.event.action == 'published') }}
-    uses: ./.github/workflows/release.yml
-    needs:
-      - test
-    secrets: inherit
