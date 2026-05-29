@@ -166,8 +166,9 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
         final selectedGoogleEvents = _selectedDay != null
             ? _googleEventsForDay(_selectedDay!)
             : <GoogleCalendarEvent>[];
-        final noDueDateTasks =
-            pageModel.tasks.where((t) => t.dueDate == null).toList();
+        final noDueDateTasks = pageModel.tasks
+            .where((t) => t.dueDate == null)
+            .toList();
 
         return CustomScrollView(
           slivers: [
@@ -237,41 +238,35 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
               else ...[
                 if (selectedTasks.isNotEmpty)
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final task = selectedTasks[index];
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TaskTile(task: task, project: widget.project),
-                            if (index < selectedTasks.length - 1 ||
-                                selectedGoogleEvents.isNotEmpty)
-                              const Divider(height: 1),
-                          ],
-                        );
-                      },
-                      childCount: selectedTasks.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final task = selectedTasks[index];
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TaskTile(task: task, project: widget.project),
+                          if (index < selectedTasks.length - 1 ||
+                              selectedGoogleEvents.isNotEmpty)
+                            const Divider(height: 1),
+                        ],
+                      );
+                    }, childCount: selectedTasks.length),
                   ),
                 if (selectedGoogleEvents.isNotEmpty)
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final event = selectedGoogleEvents[index];
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _GoogleEventTile(
-                              event: event,
-                              formatTime: _formatEventTime,
-                            ),
-                            if (index < selectedGoogleEvents.length - 1)
-                              const Divider(height: 1),
-                          ],
-                        );
-                      },
-                      childCount: selectedGoogleEvents.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final event = selectedGoogleEvents[index];
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _GoogleEventTile(
+                            event: event,
+                            formatTime: _formatEventTime,
+                          ),
+                          if (index < selectedGoogleEvents.length - 1)
+                            const Divider(height: 1),
+                        ],
+                      );
+                    }, childCount: selectedGoogleEvents.length),
                   ),
               ],
               const SliverToBoxAdapter(child: Divider(height: 8, thickness: 4)),
@@ -286,20 +281,17 @@ class _ProjectCalendarViewState extends ConsumerState<ProjectCalendarView> {
                 ),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final task = noDueDateTasks[index];
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _TaskTile(task: task, project: widget.project),
-                        if (index < noDueDateTasks.length - 1)
-                          const Divider(height: 1),
-                      ],
-                    );
-                  },
-                  childCount: noDueDateTasks.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final task = noDueDateTasks[index];
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _TaskTile(task: task, project: widget.project),
+                      if (index < noDueDateTasks.length - 1)
+                        const Divider(height: 1),
+                    ],
+                  );
+                }, childCount: noDueDateTasks.length),
               ),
             ],
 
@@ -385,16 +377,8 @@ class _GoogleEventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: SvgPicture.string(
-        _kGoogleLogoSvg,
-        width: 24,
-        height: 24,
-      ),
-      title: Text(
-        event.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      leading: SvgPicture.string(_kGoogleLogoSvg, width: 24, height: 24),
+      title: Text(event.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: event.allDay
           ? null
           : Text(

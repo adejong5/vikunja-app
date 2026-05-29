@@ -21,7 +21,9 @@ class GoogleCalendarEvent {
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       start: DateTime.parse(json['start'] as String),
-      end: (endRaw != null && endRaw.isNotEmpty) ? DateTime.parse(endRaw) : null,
+      end: (endRaw != null && endRaw.isNotEmpty)
+          ? DateTime.parse(endRaw)
+          : null,
       allDay: json['all_day'] as bool? ?? false,
       calendarName: json['calendar_name'] as String? ?? '',
     );

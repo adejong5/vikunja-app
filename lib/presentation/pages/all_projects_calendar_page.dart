@@ -69,12 +69,13 @@ class _AllProjectsCalendarPageState
     final filter = "due_date >= '$startIso' && due_date < '$endIso'";
 
     try {
-      final response = await ref
-          .read(taskRepositoryProvider)
-          .getByFilterString(filter, {
-            'sort_by': ['due_date'],
-            'order_by': ['asc'],
-          });
+      final response = await ref.read(taskRepositoryProvider).getByFilterString(
+        filter,
+        {
+          'sort_by': ['due_date'],
+          'order_by': ['asc'],
+        },
+      );
 
       if (!mounted) return;
       if (response.isSuccessful) {
@@ -169,81 +170,77 @@ class _AllProjectsCalendarPageState
   Widget build(BuildContext context) {
     if (_loading) return const LoadingWidget();
     if (_error != null) {
-      return VikunjaErrorWidget(
-        error: _error!,
-        onRetry: _loadData,
-      );
+      return VikunjaErrorWidget(error: _error!, onRetry: _loadData);
     }
 
     final eventMap = _buildEventMap();
-    final selectedTasks =
-        _selectedDay != null ? _tasksForDay(eventMap, _selectedDay!) : <Task>[];
-    final selectedGoogleEvents =
-        _selectedDay != null ? _googleEventsForDay(_selectedDay!) : <GoogleCalendarEvent>[];
+    final selectedTasks = _selectedDay != null
+        ? _tasksForDay(eventMap, _selectedDay!)
+        : <Task>[];
+    final selectedGoogleEvents = _selectedDay != null
+        ? _googleEventsForDay(_selectedDay!)
+        : <GoogleCalendarEvent>[];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context).calendarTab),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).calendarTab)),
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: TableCalendar<Object>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: _focusedDay,
-              calendarFormat: CalendarFormat.month,
-              availableCalendarFormats: const {CalendarFormat.month: ''},
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              eventLoader: (day) => [
-                ..._tasksForDay(eventMap, day),
-                ..._googleEventsForDay(day),
-              ],
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onPageChanged: (focusedDay) => _onMonthChanged(focusedDay),
-              calendarStyle: CalendarStyle(
-                markerDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
+          slivers: [
+            SliverToBoxAdapter(
+              child: TableCalendar<Object>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                calendarFormat: CalendarFormat.month,
+                availableCalendarFormats: const {CalendarFormat.month: ''},
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                eventLoader: (day) => [
+                  ..._tasksForDay(eventMap, day),
+                  ..._googleEventsForDay(day),
+                ],
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                },
+                onPageChanged: (focusedDay) => _onMonthChanged(focusedDay),
+                calendarStyle: CalendarStyle(
+                  markerDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
 
-          // — Selected-day section —
-          if (_selectedDay != null) ...[
-            _SliverSectionHeader(
-              child: Text(
-                _formatDate(context, _selectedDay!),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            if (selectedTasks.isEmpty && selectedGoogleEvents.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context).noTasksForDay,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+            // — Selected-day section —
+            if (_selectedDay != null) ...[
+              _SliverSectionHeader(
+                child: Text(
+                  _formatDate(context, _selectedDay!),
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-              )
-            else ...[
-              if (selectedTasks.isNotEmpty)
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+              ),
+              if (selectedTasks.isEmpty && selectedGoogleEvents.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context).noTasksForDay,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                )
+              else ...[
+                if (selectedTasks.isNotEmpty)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
                       final task = selectedTasks[index];
                       final project = _projectMap[task.projectId];
                       return Column(
@@ -255,14 +252,11 @@ class _AllProjectsCalendarPageState
                             const Divider(height: 1),
                         ],
                       );
-                    },
-                    childCount: selectedTasks.length,
+                    }, childCount: selectedTasks.length),
                   ),
-                ),
-              if (selectedGoogleEvents.isNotEmpty)
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+                if (selectedGoogleEvents.isNotEmpty)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
                       final event = selectedGoogleEvents[index];
                       return Column(
                         mainAxisSize: MainAxisSize.min,
@@ -275,20 +269,16 @@ class _AllProjectsCalendarPageState
                             const Divider(height: 1),
                         ],
                       );
-                    },
-                    childCount: selectedGoogleEvents.length,
+                    }, childCount: selectedGoogleEvents.length),
                   ),
-                ),
+              ],
+              const SliverToBoxAdapter(child: Divider(height: 8, thickness: 4)),
             ],
-            const SliverToBoxAdapter(
-              child: Divider(height: 8, thickness: 4),
-            ),
-          ],
 
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -333,10 +323,7 @@ class _AllProjectsTaskTile extends StatelessWidget {
             : null,
       ),
       subtitle: project != null
-          ? Text(
-              project!.title,
-              style: Theme.of(context).textTheme.bodySmall,
-            )
+          ? Text(project!.title, style: Theme.of(context).textTheme.bodySmall)
           : null,
       onTap: () => showModalBottomSheet<void>(
         context: context,
@@ -364,16 +351,8 @@ class _GoogleEventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: SvgPicture.string(
-        _kGoogleLogoSvg,
-        width: 24,
-        height: 24,
-      ),
-      title: Text(
-        event.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      leading: SvgPicture.string(_kGoogleLogoSvg, width: 24, height: 24),
+      title: Text(event.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: event.allDay
           ? null
           : Text(

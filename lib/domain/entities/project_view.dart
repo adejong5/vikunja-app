@@ -27,6 +27,8 @@ class ProjectView {
         return Icon(Icons.view_timeline);
       case ViewKind.table:
         return Icon(Icons.table_chart);
+      case ViewKind.calendar:
+        return Icon(Icons.calendar_month);
     }
   }
 

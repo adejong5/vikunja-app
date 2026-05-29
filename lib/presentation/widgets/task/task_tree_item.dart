@@ -23,6 +23,7 @@ import 'package:vikunja_app/presentation/widgets/task_bottom_sheet.dart';
 class TaskTreeItem extends ConsumerStatefulWidget {
   final Task task;
   final int depth;
+
   /// When non-null, this map is the authoritative source of subtasks
   /// (parentId → children). Pass `const {}` for flat mode (no subtasks shown).
   /// When null, falls back to `task.subtasks` from the API response.
@@ -173,8 +174,9 @@ class _TaskTreeItemState extends ConsumerState<TaskTreeItem> {
     setState(() => _orderedSubtasks = tasks);
 
     final before = newIndex == 0 ? null : tasks[newIndex - 1].position;
-    final after =
-        newIndex >= tasks.length - 1 ? null : tasks[newIndex + 1].position;
+    final after = newIndex >= tasks.length - 1
+        ? null
+        : tasks[newIndex + 1].position;
     final newPos = calculateItemPosition(
       positionBefore: before,
       positionAfter: after,
@@ -295,9 +297,7 @@ class _TaskTreeItemState extends ConsumerState<TaskTreeItem> {
         .markAsDone(widget.task);
     if (!success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).taskMarkDoneError),
-        ),
+        SnackBar(content: Text(AppLocalizations.of(context).taskMarkDoneError)),
       );
     }
   }

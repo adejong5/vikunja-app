@@ -75,7 +75,8 @@ class TaskDto extends Dto<Task> {
       dueDate = _parseDate(json['due_date']),
       startDate = _parseDate(json['start_date']),
       endDate = _parseDate(json['end_date']),
-      parentTaskId = json['parent_task_id'] ??
+      parentTaskId =
+          json['parent_task_id'] ??
           (json['related_tasks'] != null &&
                   json['related_tasks']['parenttask'] != null &&
                   (json['related_tasks']['parenttask'] as List).isNotEmpty
@@ -102,11 +103,11 @@ class TaskDto extends Dto<Task> {
                 .map((subtask) => TaskDto.fromJson(subtask))
                 .toList()
           : (json['related_tasks'] != null &&
-                  json['related_tasks']['subtask'] != null
-              ? (json['related_tasks']['subtask'] as List<dynamic>)
-                    .map((subtask) => TaskDto.fromJson(subtask))
-                    .toList()
-              : []),
+                    json['related_tasks']['subtask'] != null
+                ? (json['related_tasks']['subtask'] as List<dynamic>)
+                      .map((subtask) => TaskDto.fromJson(subtask))
+                      .toList()
+                : []),
       assignees = json['assignees'] != null
           ? (json['assignees'] as List<dynamic>)
                 .map((u) => UserDto.fromJson(u))

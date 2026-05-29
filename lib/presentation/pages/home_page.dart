@@ -36,7 +36,12 @@ class HomePageState extends ConsumerState<HomePage> {
   Widget? drawerItem;
   NotificationHandler? _notificationHandler;
 
-  List<Widget> widgets = [TaskListPage(), ProjectListPage(), AllProjectsCalendarPage(), SettingsPage()];
+  List<Widget> widgets = [
+    TaskListPage(),
+    ProjectListPage(),
+    AllProjectsCalendarPage(),
+    SettingsPage(),
+  ];
 
   List<NavigationDestination> navbarItems(BuildContext context) => [
     NavigationDestination(

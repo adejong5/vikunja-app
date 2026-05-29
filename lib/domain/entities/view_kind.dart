@@ -2,7 +2,8 @@ enum ViewKind {
   list,
   gantt,
   table,
-  kanban;
+  kanban,
+  calendar;
 
   static ViewKind fromString(String viewKind) {
     switch (viewKind) {
@@ -14,6 +15,8 @@ enum ViewKind {
         return table;
       case "kanban":
         return kanban;
+      case "calendar":
+        return calendar;
       default:
         throw Error();
     }

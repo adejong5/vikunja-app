@@ -149,13 +149,15 @@ class ProjectPageState extends ConsumerState<ProjectDetailPage> {
 
   BottomNavigationBar? _buildBottomNavigation(Project project) {
     if (project.views.isNotEmpty) {
-      final items = project.views.map(
-        (view) => BottomNavigationBarItem(
-          icon: view.icon,
-          label: view.title,
-          tooltip: view.title,
-        ),
-      ).toList();
+      final items = project.views
+          .map(
+            (view) => BottomNavigationBarItem(
+              icon: view.icon,
+              label: view.title,
+              tooltip: view.title,
+            ),
+          )
+          .toList();
       return BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: items,

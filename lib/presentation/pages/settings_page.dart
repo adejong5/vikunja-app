@@ -124,16 +124,11 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
               Divider(),
               SwitchListTile(
                 title: const Text('Hierarchical task display'),
-                subtitle: const Text(
-                  'Group subtasks under their parent task',
-                ),
-                value: ref
-                    .watch(hierarchicalDisplayProvider)
-                    .valueOrNull ?? false,
+                subtitle: const Text('Group subtasks under their parent task'),
+                value:
+                    ref.watch(hierarchicalDisplayProvider).valueOrNull ?? false,
                 onChanged: (bool value) {
-                  ref
-                      .read(hierarchicalDisplayProvider.notifier)
-                      .set(value);
+                  ref.read(hierarchicalDisplayProvider.notifier).set(value);
                 },
               ),
               Divider(),

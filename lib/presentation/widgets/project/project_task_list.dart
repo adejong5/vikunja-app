@@ -53,12 +53,14 @@ class ProjectTaskList extends ConsumerWidget {
           }
           final hierarchical =
               ref.watch(hierarchicalDisplayProvider).valueOrNull ?? false;
-          children.add(_buildTaskList(
-            ref,
-            pageModel.tasks,
-            hierarchical,
-            pageModel.displayDoneTask,
-          ));
+          children.add(
+            _buildTaskList(
+              ref,
+              pageModel.tasks,
+              hierarchical,
+              pageModel.displayDoneTask,
+            ),
+          );
         }
 
         if (pageModel.isLoadingNextPage) {
@@ -200,8 +202,9 @@ class ProjectTaskList extends ConsumerWidget {
     final subtaskIds = <int>{};
     for (final task in tasks) {
       if (task.subtasks.isNotEmpty) {
-        subtaskMap[task.id] =
-            task.subtasks.map((s) => taskById[s.id] ?? s).toList();
+        subtaskMap[task.id] = task.subtasks
+            .map((s) => taskById[s.id] ?? s)
+            .toList();
         for (final s in task.subtasks) {
           subtaskIds.add(s.id);
         }
@@ -209,8 +212,7 @@ class ProjectTaskList extends ConsumerWidget {
     }
 
     // Only top-level tasks appear in the reorderable list.
-    final topLevel =
-        tasks.where((t) => !subtaskIds.contains(t.id)).toList();
+    final topLevel = tasks.where((t) => !subtaskIds.contains(t.id)).toList();
 
     // Get the list-view ID needed to persist task positions.
     final int? viewId = project.views
@@ -271,12 +273,14 @@ class ProjectTaskList extends ConsumerWidget {
 
         final taskList = List<Task>.from(topLevel);
         final moved = taskList.removeAt(oldIndex);
-        final insertIndex =
-            newIndex == -1 ? 0 : newIndex.clamp(0, taskList.length);
+        final insertIndex = newIndex == -1
+            ? 0
+            : newIndex.clamp(0, taskList.length);
         taskList.insert(insertIndex, moved);
 
-        final before =
-            insertIndex == 0 ? null : taskList[insertIndex - 1].position;
+        final before = insertIndex == 0
+            ? null
+            : taskList[insertIndex - 1].position;
         final after = insertIndex == taskList.length - 1
             ? null
             : taskList[insertIndex + 1].position;
@@ -287,8 +291,7 @@ class ProjectTaskList extends ConsumerWidget {
 
         // Rebuild the full task list preserving subtasks: reordered top-level
         // items first, then any subtasks that were in the original task list.
-        final subtasks =
-            tasks.where((t) => subtaskIds.contains(t.id)).toList();
+        final subtasks = tasks.where((t) => subtaskIds.contains(t.id)).toList();
         final fullOrderedTasks = [...taskList, ...subtasks];
 
         ref
@@ -300,12 +303,12 @@ class ProjectTaskList extends ConsumerWidget {
               newPosition: newPos,
             )
             .then((success) {
-          if (!success && ref.context.mounted) {
-            ScaffoldMessenger.of(ref.context).showSnackBar(
-              const SnackBar(content: Text('Failed to reorder task')),
-            );
-          }
-        });
+              if (!success && ref.context.mounted) {
+                ScaffoldMessenger.of(ref.context).showSnackBar(
+                  const SnackBar(content: Text('Failed to reorder task')),
+                );
+              }
+            });
       },
     );
   }

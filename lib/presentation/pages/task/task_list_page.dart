@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -127,16 +126,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final subtaskIds = <int>{};
     for (final task in model.tasks) {
       if (task.subtasks.isNotEmpty) {
-        subtaskMap[task.id] =
-            task.subtasks.map((s) => taskById[s.id] ?? s).toList();
+        subtaskMap[task.id] = task.subtasks
+            .map((s) => taskById[s.id] ?? s)
+            .toList();
         for (final s in task.subtasks) {
           subtaskIds.add(s.id);
         }
       }
     }
 
-    final topLevelTasks =
-        model.tasks.where((t) => !subtaskIds.contains(t.id)).toList();
+    final topLevelTasks = model.tasks
+        .where((t) => !subtaskIds.contains(t.id))
+        .toList();
 
     Future<bool> reorderSubtask(Task movedTask, double newPosition) async {
       final res = await ref
@@ -275,5 +276,4 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
     }
   }
-
 }
