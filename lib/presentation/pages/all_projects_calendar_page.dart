@@ -3,16 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:vikunja_app/core/di/network_provider.dart';
-import 'package:vikunja_app/core/di/repository_provider.dart';
+import 'package:vikunja_app/core/di/repository_provider.dart'
+    show taskRepositoryProvider;
 import 'package:vikunja_app/data/data_sources/google_calendar_data_source.dart';
 import 'package:vikunja_app/domain/entities/google_calendar_event.dart';
-import 'package:vikunja_app/domain/entities/project.dart';
 import 'package:vikunja_app/domain/entities/task.dart';
 import 'package:vikunja_app/l10n/gen/app_localizations.dart';
 import 'package:vikunja_app/presentation/pages/error_widget.dart';
 import 'package:vikunja_app/presentation/pages/loading_widget.dart';
-import 'package:vikunja_app/presentation/pages/task/task_edit_page.dart';
-import 'package:vikunja_app/presentation/widgets/task_bottom_sheet.dart';
+import 'package:vikunja_app/presentation/widgets/task/task_tree_item.dart';
 
 class AllProjectsCalendarPage extends ConsumerStatefulWidget {
   const AllProjectsCalendarPage({super.key});
@@ -30,7 +29,6 @@ class _AllProjectsCalendarPageState
   bool _loading = true;
   Object? _error;
   List<Task> _tasks = [];
-  Map<int, Project> _projectMap = {};
   Map<DateTime, List<GoogleCalendarEvent>> _googleEventMap = {};
   String? _lastFetchedMonth;
 
@@ -53,7 +51,7 @@ class _AllProjectsCalendarPageState
       _error = null;
     });
 
-    await Future.wait([_loadTasks(), _loadProjects(), _loadGoogleEvents()]);
+    await Future.wait([_loadTasks(), _loadGoogleEvents()]);
 
     if (mounted) {
       setState(() => _loading = false);
@@ -88,16 +86,6 @@ class _AllProjectsCalendarPageState
     } catch (e) {
       if (mounted) _error = e;
     }
-  }
-
-  Future<void> _loadProjects() async {
-    try {
-      final response = await ref.read(projectRepositoryProvider).getAll();
-      if (!mounted) return;
-      if (response.isSuccessful) {
-        _projectMap = {for (final p in response.toSuccess().body) p.id: p};
-      }
-    } catch (_) {}
   }
 
   Future<void> _loadGoogleEvents() async {
@@ -145,8 +133,28 @@ class _AllProjectsCalendarPageState
     return map;
   }
 
+  Map<int, List<Task>> _buildSubtaskMap() {
+    final map = <int, List<Task>>{};
+    for (final task in _tasks) {
+      final pid = task.parentTaskId;
+      if (pid != null) {
+        (map[pid] ??= []).add(task);
+      }
+    }
+    return map;
+  }
+
   List<Task> _tasksForDay(Map<DateTime, List<Task>> map, DateTime day) {
     return map[_normalise(day)] ?? [];
+  }
+
+  /// Returns only root tasks for [tasks] — subtasks whose parent also appears
+  /// in [tasks] are omitted because they'll render nested under their parent.
+  List<Task> _rootTasks(List<Task> tasks) {
+    final ids = tasks.map((t) => t.id).toSet();
+    return tasks
+        .where((t) => t.parentTaskId == null || !ids.contains(t.parentTaskId))
+        .toList();
   }
 
   List<GoogleCalendarEvent> _googleEventsForDay(DateTime day) {
@@ -174,8 +182,9 @@ class _AllProjectsCalendarPageState
     }
 
     final eventMap = _buildEventMap();
+    final subtaskMap = _buildSubtaskMap();
     final selectedTasks = _selectedDay != null
-        ? _tasksForDay(eventMap, _selectedDay!)
+        ? _rootTasks(_tasksForDay(eventMap, _selectedDay!))
         : <Task>[];
     final selectedGoogleEvents = _selectedDay != null
         ? _googleEventsForDay(_selectedDay!)
@@ -242,11 +251,14 @@ class _AllProjectsCalendarPageState
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final task = selectedTasks[index];
-                      final project = _projectMap[task.projectId];
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _AllProjectsTaskTile(task: task, project: project),
+                          TaskTreeItem(
+                            task: task,
+                            depth: 0,
+                            subtaskMap: subtaskMap,
+                          ),
                           if (index < selectedTasks.length - 1 ||
                               selectedGoogleEvents.isNotEmpty)
                             const Divider(height: 1),
@@ -294,49 +306,6 @@ class _SliverSectionHeader extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: child,
-      ),
-    );
-  }
-}
-
-class _AllProjectsTaskTile extends StatelessWidget {
-  final Task task;
-  final Project? project;
-
-  const _AllProjectsTaskTile({required this.task, this.project});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        task.done ? Icons.check_circle : Icons.radio_button_unchecked,
-        color: task.done
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-      ),
-      title: Text(
-        task.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: task.done
-            ? const TextStyle(decoration: TextDecoration.lineThrough)
-            : null,
-      ),
-      subtitle: project != null
-          ? Text(project!.title, style: Theme.of(context).textTheme.bodySmall)
-          : null,
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(10.0)),
-        ),
-        builder: (_) => TaskBottomSheet(
-          task: task,
-          onEdit: () => Navigator.push<Task?>(
-            context,
-            MaterialPageRoute(builder: (_) => TaskEditPage(task: task)),
-          ),
-        ),
       ),
     );
   }
